@@ -2,8 +2,12 @@
 # app.py
 
 # Required imports
+import logging
 import os
+
 from flask import Flask, request, jsonify
+from pylogrus import PyLogrus, TextFormatter
+
 from google.cloud import firestore
 
 # Initialize Flask app
@@ -13,8 +17,25 @@ app = Flask(__name__)
 # cred = credentials.Certificate('key.json')
 # default_app = initialize_app(cred)
 db = firestore.Client()
-tomo_ref = db.collection('tomos')
+root_collection = db.collection('tomos')
 
+def get_logger():
+    logging.setLoggerClass(PyLogrus)
+
+    logger = logging.getLogger(__name__)  # type: PyLogrus
+    logger.setLevel(logging.DEBUG)
+
+    formatter = TextFormatter(datefmt='Z', colorize=True)
+
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    return logger
+
+log = get_logger()
+log.debug("PyLogrus initialized for structured logging")
 
 @app.route('/add', methods=['POST'])
 def create():
@@ -25,7 +46,7 @@ def create():
   """
   try:
     uid = request.json['id']
-    tomo_ref.document(uid).set(request.json)
+    root_collection.document(uid).set(request.json)
     return jsonify({"success": True}), 200
   except Exception as e:
     return f"An Error Occured: {e}"
@@ -36,7 +57,7 @@ def test():
     uid = request.json['id']
     contents = request.get_json()
     contents.pop('id', None)
-    tomo_ref.document(uid).set(contents)
+    root_collection.document(uid).set(contents)
     return jsonify({"success": True}), 200
   except Exception as e:
     return f"An Error Occured: {e}"
@@ -52,10 +73,10 @@ def read():
     # Check if ID was passed to URL query
     tomo_id = request.args.get('id')
     if tomo_id:
-      tomo = tomo_ref.document(tomo_id).get()
+      tomo = root_collection.document(tomo_id).get()
       return jsonify(tomo.to_dict()), 200
     else:
-      all_tomos = [doc.to_dict() for doc in tomo_ref.stream()]
+      all_tomos = [doc.to_dict() for doc in root_collection.stream()]
       return jsonify(all_tomos), 200
   except Exception as e:
     return f"An Error Occured: {e}"
@@ -69,7 +90,7 @@ def update():
   """
   try:
     uid = request.json['id']
-    tomo_ref.document(uid).update(request.json)
+    root_collection.document(uid).update(request.json)
     return jsonify({"success": True}), 200
   except Exception as e:
     return f"An Error Occured: {e}"
@@ -82,8 +103,54 @@ def delete():
   try:
     # Check for ID in URL query
     tomo_id = request.args.get('id')
-    tomo_ref.document(tomo_id).delete()
+    root_collection.document(tomo_id).delete()
     return jsonify({"success": True}), 200
+  except Exception as e:
+    return f"An Error Occured: {e}"
+
+@app.route('/update', methods=['POST', 'PUT'])
+def create_relationship():
+  """
+    create_relationship() : create document in Firestore collection with request body.
+    This OVERWRITES if the relationship already exists.
+    Ensure you pass a custom ID as part of json body in post request,
+    e.g. json={'id': '1', 'title': 'Write a blog post today'}
+  """
+  try:
+    direction = request.json['direction'].lower()
+    relationship = request.json['relationship'].lower()
+    delta = int(request.json['delta'])
+    uuids = request.json['uuids']
+    if isinstance(uuids, list):
+        log.withFields({'uuids': uuids}).error("uuids is not a list!")
+
+    # bail out if it is not a supported direction
+    if direction not in ['uni', 'bi']:
+        log.withFields({'direction': request.json['direction']}).error("direction is not recognized!")
+        raise "relationship direction %s not recognized" % request.json['direction']
+
+    doc_refs = []
+    if direction == 'bi':
+      for uuid_src in uuids:
+        for uuid_trgt in uuids:
+          if uuid_src != uuid_trgt:
+            doc_refs.append(root_collection.document(uuid_src).collection(relationship).document(uuid_trgt))
+    else:
+      doc_refs.append(root_collection.document(uuids[0]).collection(relationship).document(uuids[1]))
+
+    transaction = db.transaction()
+
+    @firestore.transactional
+    def update_in_transaction(transaction, doc_refs, delta):
+      new_scores = []
+      for doc_ref in doc_refs:
+        new_scores.append(doc_ref.get(transaction=transaction).get(u'score') + delta)
+      for i in range(0, len(doc_refs)):
+        transaction.update(doc_refs[i], {u'score': new_scores[i]})
+
+    update_in_transaction(transaction, doc_refs, delta)
+    result = transaction.commit()
+    return jsonify({"success": True, "result": result}), 200
   except Exception as e:
     return f"An Error Occured: {e}"
 

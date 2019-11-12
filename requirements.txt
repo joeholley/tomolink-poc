@@ -1,5 +1,5 @@
 # requirements.txt
 Flask
 gunicorn
-#firebase_admin
+pylogrus
 google-cloud-firestore
