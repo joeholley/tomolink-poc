@@ -108,7 +108,7 @@ def delete():
   except Exception as e:
     return f"An Error Occured: {e}"
 
-@app.route('/update', methods=['POST', 'PUT'])
+@app.route('/createRelationship', methods=['POST', 'PUT'])
 def create_relationship():
   """
     create_relationship() : create document in Firestore collection with request body.
