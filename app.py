@@ -166,16 +166,22 @@ def create_relationship():
     def update_in_transaction(transaction, doc_refs, delta):
       new_scores = []
       log.debug("point4")
-      for doc_ref in doc_refs:
-        log.debug("point4.1")
-        try:
-          new_scores.append(doc_ref.get(transaction=transaction).get(u'score') + delta)
-        except Exception:
-          log.error(f"An Error Occured: {e}", traceback.format_exc())
-          new_scores.append(delta)
-      log.debug("point5")
-      for i in range(0, len(doc_refs)):
-        transaction.update(doc_refs[i], {u'score': new_scores[i]})
+      snapshot = root_collection.document('joja').get(transaction=transaction)
+      log.debug("point4.1, is this printable %s" % snapshot)
+      ha = snapshot.get(u'tomodachi')
+
+      log.debug("point4.2 tomodachi valuek %s" % ha)
+#      for doc_ref in doc_refs:
+#        log.debug("point4.1")
+#        score = doc_ref.get(transaction=transaction).get(u'score')
+#        try:
+#          new_scores.append(doc_ref.get(transaction=transaction).get(u'score') + delta)
+#        except Exception:
+#          log.error(f"An Error Occured: {e}", traceback.format_exc())
+#          new_scores.append(delta)
+#      log.debug("point5")
+#      for i in range(0, len(doc_refs)):
+#        transaction.update(doc_refs[i], {u'score': new_scores[i]})
       log.debug("point6")
 
     log.debug("point3")
