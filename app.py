@@ -7,7 +7,7 @@ import os
 import traceback
 
 from flask import Flask, request, jsonify
-from pylogrus import PyLogrus, JsonFormatter
+from pylogrus import PyLogrus, JsonFormatter, TextFormatter
 
 from google.cloud import firestore
 
@@ -40,7 +40,7 @@ def get_logger():
 
     formatter = JsonFormatter(datefmt='Z', enabled_fields=enabled_fields, indent=2, sort_keys=True)
 
-    # formatter = TextFormatter(datefmt='Z', colorize=False)
+    formatter = TextFormatter(datefmt='Z', colorize=False)
 
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
@@ -137,7 +137,8 @@ def create_relationship():
     relationship = request.json['relationship'].lower()
     delta = int(request.json['delta'])
     uuids = list(request.json['uuids'])
-    log.withFields({'uuids': uuids, 'type': type(uuids)}).error("uuids type!")
+    for uuid in uuids:
+        log.withFields({'uuid': uuid}).error("looping thru uuids !")
 
     # bail out if it is not a supported direction
     if direction not in ['uni', 'bi']:
