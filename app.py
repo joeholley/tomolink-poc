@@ -170,7 +170,13 @@ def create_relationship():
       log.debug("point4.1, is this printable %s" % snapshot)
       ha = snapshot.get(u'tomodachi')
 
-      log.debug("point4.2 tomodachi valuek %s" % ha)
+      log.debug("point4.2 tomodachi value %s" % ha)
+      try:
+        ha = snapshot.get(u'tomodaci')
+        log.debug("point4.3 tomodaci value %s" % ha)
+      except Exception:
+        pass 
+
 #      for doc_ref in doc_refs:
 #        log.debug("point4.1")
 #        score = doc_ref.get(transaction=transaction).get(u'score')
