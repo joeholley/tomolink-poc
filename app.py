@@ -159,7 +159,7 @@ def create_relationship():
     else:
       doc_refs.append(root_collection.document(uuids[0]).collection(relationship).document(uuids[1]))
 
-    log.debug("point2")
+    log.debug("point2, len(doc_refs) %s" % len(doc_refs))
     transaction = db.transaction()
 
     @firestore.transactional
@@ -167,6 +167,7 @@ def create_relationship():
       new_scores = []
       log.debug("point4")
       for doc_ref in doc_refs:
+        log.debug("point4.1")
         try:
           new_scores.append(doc_ref.get(transaction=transaction).get(u'score') + delta)
         except Exception:
