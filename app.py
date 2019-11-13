@@ -132,11 +132,12 @@ def create_relationship():
     e.g. json={'id': '1', 'title': 'Write a blog post today'}
   """
   try:
+    log.debug("point1")
     direction = request.json['direction'].lower()
     relationship = request.json['relationship'].lower()
     delta = int(request.json['delta'])
     uuids = list(request.json['uuids'])
-    log.withFields({'uuids': uuids, 'type': type(uuids)}).error("uuids is not a list!")
+    log.withFields({'uuids': uuids, 'type': type(uuids)}).error("uuids type!")
 
     # bail out if it is not a supported direction
     if direction not in ['uni', 'bi']:
@@ -152,19 +153,21 @@ def create_relationship():
     else:
       doc_refs.append(root_collection.document(uuids[0]).collection(relationship).document(uuids[1]))
 
-    transaction = db.transaction()
-
-    @firestore.transactional
-    def update_in_transaction(transaction, doc_refs, delta):
-      new_scores = []
-      for doc_ref in doc_refs:
-        new_scores.append(doc_ref.get(transaction=transaction).get(u'score') + delta)
-      for i in range(0, len(doc_refs)):
-        transaction.update(doc_refs[i], {u'score': new_scores[i]})
-
-    update_in_transaction(transaction, doc_refs, delta)
-    result = transaction.commit()
-    return jsonify({"success": True, "result": result}), 200
+    log.debug("point2")
+#    transaction = db.transaction()
+#
+#    @firestore.transactional
+#    def update_in_transaction(transaction, doc_refs, delta):
+#      new_scores = []
+#      for doc_ref in doc_refs:
+#        new_scores.append(doc_ref.get(transaction=transaction).get(u'score') + delta)
+#      for i in range(0, len(doc_refs)):
+#        transaction.update(doc_refs[i], {u'score': new_scores[i]})
+#
+#    update_in_transaction(transaction, doc_refs, delta)
+#    result = transaction.commit()
+#    return jsonify({"success": True, "result": result}), 200
+    return jsonify({"success": True}), 200
   except Exception as e:
     return f"An Error Occured: {e}", traceback.format_exc()
 
