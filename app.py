@@ -133,12 +133,17 @@ def create_relationship():
   """
   try:
     log.debug("point1")
+
+    # TODO(joeholley): in final, we'll need input validation to avoid malicous actors
     direction = request.json['direction'].lower()
     relationship = request.json['relationship'].lower()
     delta = int(request.json['delta'])
     uuids = list(request.json['uuids'])
-    for uuid in uuids:
-        log.withFields({'uuid': uuid}).error("looping thru uuids !")
+
+    log.withFields({'direction': direction,
+                    'relationship': relationship,
+                    'delta': delta,
+                    'uuids': uuids}).debug("Printing request fields")
 
     # bail out if it is not a supported direction
     if direction not in ['uni', 'bi']:
@@ -155,20 +160,20 @@ def create_relationship():
       doc_refs.append(root_collection.document(uuids[0]).collection(relationship).document(uuids[1]))
 
     log.debug("point2")
-#    transaction = db.transaction()
-#
-#    @firestore.transactional
-#    def update_in_transaction(transaction, doc_refs, delta):
-#      new_scores = []
-#      for doc_ref in doc_refs:
-#        new_scores.append(doc_ref.get(transaction=transaction).get(u'score') + delta)
-#      for i in range(0, len(doc_refs)):
-#        transaction.update(doc_refs[i], {u'score': new_scores[i]})
-#
-#    update_in_transaction(transaction, doc_refs, delta)
-#    result = transaction.commit()
-#    return jsonify({"success": True, "result": result}), 200
-    return jsonify({"success": True}), 200
+    transaction = db.transaction()
+
+    @firestore.transactional
+    def update_in_transaction(transaction, doc_refs, delta):
+      new_scores = []
+      for doc_ref in doc_refs:
+        new_scores.append(doc_ref.get(transaction=transaction).get(u'score') + delta)
+      for i in range(0, len(doc_refs)):
+        transaction.update(doc_refs[i], {u'score': new_scores[i]})
+
+    update_in_transaction(transaction, doc_refs, delta)
+    result = transaction.commit()
+    return jsonify({"success": True, "result": result}), 200
+#    return jsonify({"success": True}), 200
   except Exception as e:
     return f"An Error Occured: {e}", traceback.format_exc()
 
