@@ -6,7 +6,7 @@ import logging
 import os
 
 from flask import Flask, request, jsonify
-from pylogrus import PyLogrus, TextFormatter
+from pylogrus import PyLogrus, JsonFormatter
 
 from google.cloud import firestore
 
@@ -25,7 +25,21 @@ def get_logger():
     logger = logging.getLogger(__name__)  # type: PyLogrus
     logger.setLevel(logging.DEBUG)
 
-    formatter = TextFormatter(datefmt='Z', colorize=True)
+    enabled_fields = [
+        ('name', 'logger_name'),
+        ('asctime', 'service_timestamp'),
+        ('levelname', 'level'),
+        ('threadName', 'thread_name'),
+        'message',
+        ('exception', 'exception_class'),
+        ('stacktrace', 'stack_trace'),
+        'module',
+        ('funcName', 'function')
+    ]
+
+    formatter = JsonFormatter(datefmt='Z', enabled_fields=enabled_fields, indent=2, sort_keys=True)
+
+    # formatter = TextFormatter(datefmt='Z', colorize=False)
 
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
@@ -120,7 +134,7 @@ def create_relationship():
     direction = request.json['direction'].lower()
     relationship = request.json['relationship'].lower()
     delta = int(request.json['delta'])
-    uuids = request.json['uuids']
+    uuids = list(request.json['uuids'])
     if isinstance(uuids, list):
         log.withFields({'uuids': uuids}).error("uuids is not a list!")
 
@@ -152,7 +166,7 @@ def create_relationship():
     result = transaction.commit()
     return jsonify({"success": True, "result": result}), 200
   except Exception as e:
-    return f"An Error Occured: {e}"
+    return f"An Error Occured: {}".format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 port = int(os.environ.get('PORT', 8080))
 if __name__ == '__main__':
