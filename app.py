@@ -174,7 +174,8 @@ def create_relationship():
       try:
         ha = snapshot.get(u'tomodaci')
         log.debug("point4.3 tomodaci value %s" % ha)
-      except Exception:
+      except Exception as e:
+        log.debug("point4.3 tomodaci threw error %s" % e)
         pass 
 
 #      for doc_ref in doc_refs:
