@@ -4,6 +4,7 @@
 # Required imports
 import logging
 import os
+import traceback
 
 from flask import Flask, request, jsonify
 from pylogrus import PyLogrus, JsonFormatter
@@ -166,7 +167,7 @@ def create_relationship():
     result = transaction.commit()
     return jsonify({"success": True, "result": result}), 200
   except Exception as e:
-    return f"An Error Occured: {}".format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+    return f"An Error Occured: {e}", traceback.format_exc()
 
 port = int(os.environ.get('PORT', 8080))
 if __name__ == '__main__':
