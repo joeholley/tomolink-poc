@@ -136,8 +136,7 @@ def create_relationship():
     relationship = request.json['relationship'].lower()
     delta = int(request.json['delta'])
     uuids = list(request.json['uuids'])
-    if isinstance(uuids, list):
-        log.withFields({'uuids': uuids}).error("uuids is not a list!")
+    log.withFields({'uuids': uuids, 'type': type(uuids)}).error("uuids is not a list!")
 
     # bail out if it is not a supported direction
     if direction not in ['uni', 'bi']:
