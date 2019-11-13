@@ -167,7 +167,11 @@ def create_relationship():
       new_scores = []
       log.debug("point4")
       for doc_ref in doc_refs:
-        new_scores.append(doc_ref.get(transaction=transaction).get(u'score') + delta)
+        try:
+          new_scores.append(doc_ref.get(transaction=transaction).get(u'score') + delta)
+        except Exception:
+          log.error(f"An Error Occured: {e}", traceback.format_exc())
+          new_scores.append(delta)
       log.debug("point5")
       for i in range(0, len(doc_refs)):
         transaction.update(doc_refs[i], {u'score': new_scores[i]})
