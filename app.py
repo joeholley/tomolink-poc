@@ -165,13 +165,20 @@ def create_relationship():
     @firestore.transactional
     def update_in_transaction(transaction, doc_refs, delta):
       new_scores = []
+      log.debug("point4")
       for doc_ref in doc_refs:
         new_scores.append(doc_ref.get(transaction=transaction).get(u'score') + delta)
+      log.debug("point5")
       for i in range(0, len(doc_refs)):
         transaction.update(doc_refs[i], {u'score': new_scores[i]})
+      log.debug("point6")
 
+    log.debug("point3")
     update_in_transaction(transaction, doc_refs, delta)
+
+    log.debug("point-2")
     result = transaction.commit()
+    log.debug("point-1")
     return jsonify({"success": True, "result": result}), 200
 #    return jsonify({"success": True}), 200
   except Exception as e:
