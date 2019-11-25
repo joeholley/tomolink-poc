@@ -95,9 +95,10 @@ def read():
   except Exception as e:
     return f"An Error Occured: {e}"
 
-@app.route('/users/<string:uuid>', methods=['GET'])
-@app.route('/users/<string:uuid>/<string:relationship>', methods=['GET'])
-def retrieve_relationships(uuid, relationship=None):
+@app.route('/users/<string:uuid_src>', methods=['GET'])
+@app.route('/users/<string:uuid_src>/<string:relationship>', methods=['GET'])
+@app.route('/users/<string:uuid_src>/<string:relationship>/<string=uuid_trgt>', methods=['GET'])
+def retrieve_relationships(uuid_src, relationship=None, uuid_trgt=None):
     """
         retrieve_relationships() : get relationships for a user.
         pass only uuid to get all relationships
@@ -105,48 +106,56 @@ def retrieve_relationships(uuid, relationship=None):
     """
     try:
         rs_logger = log.withFields({
-            'uuid': uuid, 
+            'uuid_src':     uuid_src, 
+            'uuid_trgt':    uuid_trgt, 
             'relationship': relationship, 
             })
         rs_logger.debug("retrieveRelationships called")
 
-        if relationship:
+        if uuid_trgt and relationship:
             # Get requested relationship
+            key = "%s.%s" % (request.json['relationship'], request.json['uuids'][1])
+            relationship = fs.document(uuid_src).get({key}).to_dict()
             return jsonify({
                 "success": True,
-                "results": fs.document(uuid).get({relationship}).to_dict()
+                "results": relationship[relationship][uuid_trgt],
+                }), 200
+        elif relationship:
+            # Get all relationships of requested type
+            return jsonify({
+                "success": True,
+                "results": fs.document(uuid_src).get({relationship}).to_dict()
                 }), 200
         else:
-        #if True:
             # Get all relationships
             return jsonify({
                 "success": True, 
-                "results": fs.document(uuid).get().to_dict()
+                "results": fs.document(uuid_src).get().to_dict()
                 }) , 200
 
     except Exception as e:
         return f"An Error Occured: {e}"
 
-@app.route('/retrieveRelationship', methods=['POST', 'PUT'])
-def retrieve_relationship():
-    """
-        retrieve_relationship() : get one relationship score between source and target users. 
-    """
-    try:
-        rr_logger = log.withFields({
-            'relationship': request.json['relationship'],
-            'uuid_src':     request.json['uuids'][0],
-            'uuid_trgt':    request.json['uuids'][1],
-            })
-        rr_logger.debug("retrieveRelationship called")
-        key = "%s.%s" % (request.json['relationship'], request.json['uuids'][1])
-        relationship = fs.document(request.json['uuids'][0]).get({key}).to_dict()
-
-        return jsonify({"success": True, 
-                        "results": relationship[request.json['relationship']][request.json['uuids'][1]]}), 200
-
-    except Exception as e:
-        return f"An Error Occured: {e}"
+#@app.route('/retrieveRelationship', methods=['POST', 'PUT'])
+#def retrieve_relationship():
+#    """
+#        retrieve_relationship() : get one relationship score between source and target users. 
+#    """
+#    try:
+#        rr_logger = log.withFields({
+#            'relationship': request.json['relationship'],
+#            'uuid_src':     request.json['uuids'][0],
+#            'uuid_trgt':    request.json['uuids'][1],
+#            })
+#        rr_logger.debug("retrieveRelationship called")
+#        key = "%s.%s" % (request.json['relationship'], request.json['uuids'][1])
+#        relationship = fs.document(request.json['uuids'][0]).get({key}).to_dict()
+#
+#        return jsonify({"success": True, 
+#                        "results": relationship[request.json['relationship']][request.json['uuids'][1]]}), 200
+#
+#    except Exception as e:
+#        return f"An Error Occured: {e}"
 
 
 @app.route('/retrievePlayer', methods=['GET'])
