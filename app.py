@@ -205,13 +205,13 @@ def create_relationship():
                         # Tried to do this using dot notation and ended up with a dot in the key name.
 			# Turns out dot notation only works on existing nexted JSON.
                         newdata[request.json['relationship']] = dict()
-                        newdata[request.json['relationship']][uuid_trgt] = score+request.json['delta']
+                        newdata[request.json['relationship']][uuid_trgt] = score+int(request.json['delta'])
                         batch.set(fs.document(uuid_src), newdata, merge=True)
             batch.commit()
         else:
             cr_logger.debug("uni-directional relationship create")
             newdata[request.json['relationship']] = dict()
-            newdata[request.json['relationship']][request.json['uuids'][1]] = score+request.json['delta']
+            newdata[request.json['relationship']][request.json['uuids'][1]] = score+int(request.json['delta'])
             fs.document(request.json['uuids'][0]).set(newdata, merge=True)
 
         return jsonify({"success": True}), 200
