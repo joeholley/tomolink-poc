@@ -110,7 +110,7 @@ def retrieve_relationships(uuid, relationship):
         rs_logger.debug("retrieveRelationships called")
 
         if request.args.get('relationship'):
-             Get requested relationship
+            # Get requested relationship
             return jsonify({
                 "success": True,
                 "results": fs.document(uuid).get(relationship).to_dict()
