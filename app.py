@@ -103,11 +103,24 @@ def retrieve_relationships():
         pass uuid and relationship type to get all relationships of that type
     """
     try:
-        rs_logger = log.withFields({'uuid': request.args.get('uuid')})
+        rs_logger = log.withFields({
+            'uuid': request.args.get('uuid'), 
+            'relationship': request.args.get('relationship'),
+            })
         rs_logger.debug("retrieveRelationships called")
-        player = fs.document(request.args.get('uuid')).get().to_dict()
 
-        return jsonify({"success": True, "results": player}), 200
+        if request.args.get('relationship'):
+            # Get requested relationship
+            return jsonify({
+                "success": True,
+                "results": fs.document(request.args.get('uuid')).get(request.args.get('relationship')).to_dict()
+                }), 200
+        else:
+            # Get all relationships
+            return jsonify({
+                "success": True, 
+                "results": fs.document(request.args.get('uuid')).get().to_dict()
+                }) , 200
 
     except Exception as e:
         return f"An Error Occured: {e}"
