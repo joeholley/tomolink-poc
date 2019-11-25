@@ -95,8 +95,8 @@ def read():
   except Exception as e:
     return f"An Error Occured: {e}"
 
-@app.route('/retrieveRelationships', methods=['GET'])
-def retrieve_relationships():
+@app.route('/users/<string:uuid>/<string:relationship>', methods=['GET'])
+def retrieve_relationships(uuid, relationship):
     """
         retrieve_relationships() : get relationships for a user.
         pass only uuid to get all relationships
@@ -104,23 +104,23 @@ def retrieve_relationships():
     """
     try:
         rs_logger = log.withFields({
-            'uuid': request.args.get('uuid'), 
-            'relationship': request.args.get('relationship'),
+            'uuid': uuid, 
+            'relationship': relationship, 
             })
         rs_logger.debug("retrieveRelationships called")
 
-        #if request.args.get('relationship'):
-            # Get requested relationship
-            #return jsonify({
-            #    "success": True,
-            #    "results": fs.document(request.args.get('uuid')).get(request.args.get('relationship')).to_dict()
-            #    }), 200
-        #else:
-        if True:
+        if request.args.get('relationship'):
+             Get requested relationship
+            return jsonify({
+                "success": True,
+                "results": fs.document(uuid).get(relationship).to_dict()
+                }), 200
+        else:
+        #if True:
             # Get all relationships
             return jsonify({
                 "success": True, 
-                "results": fs.document(request.args.get('uuid')).get().to_dict()
+                "results": fs.document(uuid).get().to_dict()
                 }) , 200
 
     except Exception as e:
