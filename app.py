@@ -16,8 +16,6 @@ from google.cloud import firestore
 app = Flask(__name__)
 
 # Initialize Firestore DB
-# cred = credentials.Certificate('key.json')
-# default_app = initialize_app(cred)
 db = firestore.Client()
 fs = db.collection('tomos')
 
@@ -53,19 +51,19 @@ def get_logger():
 log = get_logger()
 log.debug("PyLogrus initialized for structured logging")
 
-@app.route('/add', methods=['POST'])
-def create():
-  """
-    create() : Add document to Firestore collection with request body.
-    Ensure you pass a custom ID as part of json body in post request,
-    e.g. json={'id': '1', 'title': 'Write a blog post'}
-  """
-  try:
-    uid = request.json['id']
-    fs.document(uid).set(request.json)
-    return jsonify({"success": True}), 200
-  except Exception as e:
-    return f"An Error Occured: {e}"
+#@app.route('/add', methods=['POST'])
+#def create():
+#  """
+#    create() : Add document to Firestore collection with request body.
+#    Ensure you pass a custom ID as part of json body in post request,
+#    e.g. json={'id': '1', 'title': 'Write a blog post'}
+#  """
+#  try:
+#    uid = request.json['id']
+#    fs.document(uid).set(request.json)
+#    return jsonify({"success": True}), 200
+#  except Exception as e:
+#    return f"An Error Occured: {e}"
 
 #@app.route('/test', methods=['POST'])
 #def test():
@@ -98,18 +96,40 @@ def read():
     return f"An Error Occured: {e}"
 
 @app.route('/update', methods=['POST', 'PUT'])
-def update():
-  """
-    update() : Update document in Firestore collection with request body.
-    Ensure you pass a custom ID as part of json body in post request,
-    e.g. json={'id': '1', 'title': 'Write a blog post today'}
-  """
-  try:
-    uid = request.json['id']
-    fs.document(uid).update(request.json)
-    return jsonify({"success": True}), 200
-  except Exception as e:
-    return f"An Error Occured: {e}"
+def update_relationship():
+    """
+        update_relationship() : increment/decrement relationship score between users.
+    """
+    try:
+        ur_logger = log.withFields({
+            'direction':    request.json['direction'],
+            'relationship': request.json['relationship'],
+            'uuid_src':     request.json['uuids'][0],
+            'uuid_trgt':    request.json['uuids'][1],
+            'delta':        request.json['delta'],
+            })
+        ur_logger.debug("createRelationship called")
+
+	# TODO(joeholley): configurable initial score
+        if request.json['direction'] == 'bi':
+            ur_logger.debug("bi-directional relationship create")
+            batch = db.batch()
+            for uuid_src in request.json['uuids']:
+                for uuid_trgt in request.json['uuids']:
+                    if uuid_src != uuid_trgt:
+                        # Nested JSON keys are handled using dot operators in firestore
+                        key = "%s.%s" % (request.json['relationship'], uuid_trgt)
+                        batch.update(fs.document(uuid_src), {key: firestore.Increment(request.json['delta'])})
+            batch.commit()
+        else:
+            ur_logger.debug("uni-directional relationship create")
+            key = "%s.%s" % (request.json['relationship'], request.json['uuids'][1])
+            fs.document(request.json['uuids'][0]).update({key: firestore.Increment(args['delta'])})
+
+        return jsonify({"success": True}), 200
+
+    except Exception as e:
+        return f"An Error Occured: {e}"
 
 @app.route('/deleteRelationship', methods=['GET', 'DELETE'])
 def delete_relationship():
@@ -161,7 +181,7 @@ def delete_relationship():
 @app.route('/createRelationship', methods=['POST', 'PUT'])
 def create_relationship():
     """
-        create_relationship() : create relationship in Firestore with initial score.
+        create_relationship() : create relationship with initial score between users.
     """
     try:
         cr_logger = log.withFields({
