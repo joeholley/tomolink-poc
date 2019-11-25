@@ -100,7 +100,7 @@ def retrieve_relationships():
     """
         retrieve_relationships() : get relationships for a user.
         pass only uuid to get all relationships
-        pass uuid and relationship type to get all relationships of that type
+        NYI pass uuid and relationship type to get all relationships of that type
     """
     try:
         rs_logger = log.withFields({
@@ -109,13 +109,14 @@ def retrieve_relationships():
             })
         rs_logger.debug("retrieveRelationships called")
 
-        if request.args.get('relationship'):
+        #if request.args.get('relationship'):
             # Get requested relationship
-            return jsonify({
-                "success": True,
-                "results": fs.document(request.args.get('uuid')).get(request.args.get('relationship')).to_dict()
-                }), 200
-        else:
+            #return jsonify({
+            #    "success": True,
+            #    "results": fs.document(request.args.get('uuid')).get(request.args.get('relationship')).to_dict()
+            #    }), 200
+        #else:
+        if True:
             # Get all relationships
             return jsonify({
                 "success": True, 
