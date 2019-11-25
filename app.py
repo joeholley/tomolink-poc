@@ -95,8 +95,9 @@ def read():
   except Exception as e:
     return f"An Error Occured: {e}"
 
+@app.route('/users/<string:uuid>', methods=['GET'])
 @app.route('/users/<string:uuid>/<string:relationship>', methods=['GET'])
-def retrieve_relationships(uuid, relationship):
+def retrieve_relationships(uuid, relationship=None):
     """
         retrieve_relationships() : get relationships for a user.
         pass only uuid to get all relationships
@@ -109,7 +110,7 @@ def retrieve_relationships(uuid, relationship):
             })
         rs_logger.debug("retrieveRelationships called")
 
-        if request.args.get('relationship'):
+        if relationship:
             # Get requested relationship
             return jsonify({
                 "success": True,
