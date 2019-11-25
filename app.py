@@ -41,7 +41,7 @@ def get_logger():
 
     formatter = JsonFormatter(datefmt='Z', enabled_fields=enabled_fields, indent=2, sort_keys=True)
 
-    formatter = TextFormatter(datefmt='Z', colorize=False)
+    #formatter = TextFormatter(datefmt='Z', colorize=False)
 
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
@@ -67,16 +67,16 @@ def create():
   except Exception as e:
     return f"An Error Occured: {e}"
 
-@app.route('/test', methods=['POST'])
-def test():
-  try:
-    uid = request.json['id']
-    contents = request.get_json()
-    contents.pop('id', None)
-    fs.document(uid).set(contents)
-    return jsonify({"success": True}), 200
-  except Exception as e:
-    return f"An Error Occured: {e}"
+#@app.route('/test', methods=['POST'])
+#def test():
+#  try:
+#    uid = request.json['id']
+#    contents = request.get_json()
+#    contents.pop('id', None)
+#    fs.document(uid).set(contents)
+#    return jsonify({"success": True}), 200
+#  except Exception as e:
+#    return f"An Error Occured: {e}"
 
 @app.route('/list', methods=['GET'])
 def read():
@@ -120,12 +120,13 @@ def delete_relationship():
 
     try:
         dr_logger = log.withFields({
-            'direction': request.json['direction'],
+            'direction':    request.json['direction'],
             'relationship': request.json['relationship'],
-            'uuid_src': request.json['uuids'][0],
-            'uuid_trgt': request.json['uuids'][1],
+            'uuid_src':     request.json['uuids'][0],
+            'uuid_trgt':    request.json['uuids'][1],
             })
         dr_logger.debug("deleteRelationship called")
+
         if request.json['direction'] == 'bi':
             dr_logger.info("bi-directional relationship delete")
             batch = db.batch()
@@ -142,6 +143,7 @@ def delete_relationship():
             # Nested JSON keys are handled using dot operators in firestore
             key = "%s.%s" % (request.json['relationship'], request.json['uuids'][1])
             fs.document(request.json['uuids'][0]).update({key: firestore.DELETE_FIELD})
+
         return jsonify({"success": True}), 200
 
     except Exception as e:
@@ -158,58 +160,91 @@ def delete_relationship():
 
 @app.route('/createRelationship', methods=['POST', 'PUT'])
 def create_relationship():
-  """
-    create_relationship() : create document in Firestore collection with request body.
-    This OVERWRITES if the relationship already exists.
-    Ensure you pass a custom ID as part of json body in post request,
-    e.g. json={'id': '1', 'title': 'Write a blog post today'}
-  """
-  try:
-    log.debug("point1")
+    """
+        create_relationship() : create relationship in Firestore with initial score.
+    """
+    try:
+        cr_logger = log.withFields({
+            'direction':    request.json['direction'],
+            'relationship': request.json['relationship'],
+            'uuid_src':     request.json['uuids'][0],
+            'uuid_trgt':    request.json['uuids'][1],
+            'delta':        request.json['delta'],
+            })
+        cr_logger.debug("createRelationship called")
 
-    # TODO(joeholley): in final, we'll need input validation to avoid malicous actors
-    direction = request.json['direction'].lower()
-    relationship = request.json['relationship'].lower()
-    delta = int(request.json['delta'])
-    uuids = list(request.json['uuids'])
+	# TODO(joeholley): configurable initial score
+        score = 0 
+        newdata = dict()
+        if request.json['direction'] == 'bi':
+            cr_logger.debug("bi-directional relationship create")
+            batch = db.batch()
+            for uuid_src in request.json['uuids']:
+                for uuid_trgt in request.json['uuids']:
+                    if uuid_src != uuid_trgt:
+                        # Tried to do this using dot notation and ended up with a dot in the key name.
+			# Turns out dot notation only works on existing nexted JSON.
+                        newdata[request.json['relationship']] = dict()
+                        newdata[request.json['relationship']][uuid_trgt] = score+request.json['delta']
+                        batch.set(fs.document(uuid_src), newdata, merge=True)
+            batch.commit()
+        else:
+            cr_logger.debug("uni-directional relationship create")
+            newdata[request.json['relationship']] = dict()
+            newdata[request.json['relationship']][request.json['uuids'][1]] = score+request.json['delta']
+            fs.document(request.json['uuids'][0]).set(newdata, merge=True)
 
-    log.withFields({'direction': direction,
-                    'relationship': relationship,
-                    'delta': delta,
-                    'uuids': uuids}).debug("Printing request fields")
+        return jsonify({"success": True}), 200
 
-    # bail out if it is not a supported direction
-    if direction not in ['uni', 'bi']:
-        log.withFields({'direction': request.json['direction']}).error("direction is not recognized!")
-        raise "relationship direction %s not recognized" % request.json['direction']
+    except Exception as e:
+        return f"An Error Occured: {e}"
 
-    doc_refs = []
-    if direction == 'bi':
-      for uuid_src in uuids:
-        for uuid_trgt in uuids:
-          if uuid_src != uuid_trgt:
-            doc_refs.append(fs.document(uuid_src).collection(relationship).document(uuid_trgt))
-    else:
-      doc_refs.append(fs.document(uuids[0]).collection(relationship).document(uuids[1]))
-
-    log.debug("point2, len(doc_refs) %s" % len(doc_refs))
-    transaction = db.transaction()
-
-    @firestore.transactional
-    def update_in_transaction(transaction, doc_refs, delta):
-      new_scores = []
-      log.debug("point4")
-      snapshot = fs.document('joja').get(transaction=transaction)
-      log.debug("point4.1, is this printable %s" % snapshot)
-      ha = snapshot.get(u'tomodachi')
-
-      log.debug("point4.2 tomodachi value %s" % ha)
-      try:
-        ha = snapshot.get(u'tomodaci')
-        log.debug("point4.3 tomodaci value %s" % ha)
-      except Exception as e:
-        log.debug("point4.3 tomodaci threw error %s" % e)
-        pass 
+#  try:
+#    log.debug("point1")
+#
+#    # TODO(joeholley): in final, we'll need input validation to avoid malicous actors
+#    direction = request.json['direction'].lower()
+#    relationship = request.json['relationship'].lower()
+#    delta = int(request.json['delta'])
+#    uuids = list(request.json['uuids'])
+#
+#    log.withFields({'direction': direction,
+#                    'relationship': relationship,
+#                    'delta': delta,
+#                    'uuids': uuids}).debug("Printing request fields")
+#
+#    # bail out if it is not a supported direction
+#    if direction not in ['uni', 'bi']:
+#        log.withFields({'direction': request.json['direction']}).error("direction is not recognized!")
+#        raise "relationship direction %s not recognized" % request.json['direction']
+#
+#    doc_refs = []
+#    if direction == 'bi':
+#      for uuid_src in uuids:
+#        for uuid_trgt in uuids:
+#          if uuid_src != uuid_trgt:
+#            doc_refs.append(fs.document(uuid_src).collection(relationship).document(uuid_trgt))
+#    else:
+#      doc_refs.append(fs.document(uuids[0]).collection(relationship).document(uuids[1]))
+#
+#    log.debug("point2, len(doc_refs) %s" % len(doc_refs))
+#    transaction = db.transaction()
+#
+#    @firestore.transactional
+#    def update_in_transaction(transaction, doc_refs, delta):
+#      new_scores = []
+#      log.debug("point4")
+#      snapshot = fs.document('joja').get(transaction=transaction)
+#      log.debug("point4.1, is this printable %s" % snapshot)
+#      ha = snapshot.get(u'tomodachi')
+#
+#      log.debug("point4.2 tomodachi value %s" % ha)
+#      try:
+#        ha = snapshot.get(u'tomodaci')
+#        log.debug("point4.3 tomodaci value %s" % ha)
+#      except Exception as e:
+#        log.debug("point4.3 tomodaci threw error %s" % e)
+#        pass
 
 #      for doc_ref in doc_refs:
 #        log.debug("point4.1")
@@ -222,18 +257,18 @@ def create_relationship():
 #      log.debug("point5")
 #      for i in range(0, len(doc_refs)):
 #        transaction.update(doc_refs[i], {u'score': new_scores[i]})
-      log.debug("point6")
-
-    log.debug("point3")
-    update_in_transaction(transaction, doc_refs, delta)
-
-    log.debug("point-2")
-    result = transaction.commit()
-    log.debug("point-1")
-    return jsonify({"success": True, "result": result}), 200
-#    return jsonify({"success": True}), 200
-  except Exception as e:
-    return f"An Error Occured: {e}", traceback.format_exc()
+#      log.debug("point6")
+#
+#    log.debug("point3")
+#    update_in_transaction(transaction, doc_refs, delta)
+#
+#    log.debug("point-2")
+#    result = transaction.commit()
+#    log.debug("point-1")
+#    return jsonify({"success": True, "result": result}), 200
+##    return jsonify({"success": True}), 200
+#  except Exception as e:
+#    return f"An Error Occured: {e}", traceback.format_exc()
 
 port = int(os.environ.get('PORT', 8080))
 if __name__ == '__main__':
