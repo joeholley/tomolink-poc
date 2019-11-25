@@ -100,6 +100,7 @@ def retrieve_player():
     """
         retrieve_player() : get all relationships for a user.
     """
+    log.Debug("yeppers")
     try:
         rp_logger = log.withFields({'uuid': request.json['uuid']})
         rp_logger.debug("retrievePlayer called")
