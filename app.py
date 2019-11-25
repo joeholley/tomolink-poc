@@ -95,6 +95,44 @@ def read():
   except Exception as e:
     return f"An Error Occured: {e}"
 
+@app.route('/retrieveRelationships', methods=['GET'])
+def retrieve_relationships():
+    """
+        retrieve_relationships() : get relationships for a user.
+        pass only uuid to get all relationships
+        pass uuid and relationship type to get all relationships of that type
+    """
+    try:
+        rs_logger = log.withFields({'uuid': request.args.get('uuid')})
+        rs_logger.debug("retrieveRelationships called")
+        player = fs.document(request.args.get('uuid')).get().to_dict()
+
+        return jsonify({"success": True, "results": player}), 200
+
+    except Exception as e:
+        return f"An Error Occured: {e}"
+
+@app.route('/retrieveRelationship', methods=['POST', 'PUT'])
+def retrieve_relationship():
+    """
+        retrieve_relationship() : get one relationship score between source and target users. 
+    """
+    try:
+        rr_logger = log.withFields({
+            'relationship': request.json['relationship'],
+            'uuid_src':     request.json['uuids'][0],
+            'uuid_trgt':    request.json['uuids'][1],
+            })
+        rr_logger.debug("retrieveRelationship called")
+        relationship = fs.document(request.json['uuids'][0]).get({key}).to_dict()
+
+        return jsonify({"success": True, 
+            "results": relationship[request.json['relationship']][request.json['uuids'][1]]}), 200
+
+    except Exception as e:
+        return f"An Error Occured: {e}"
+
+
 @app.route('/retrievePlayer', methods=['GET'])
 def retrieve_player():
     """
@@ -109,6 +147,7 @@ def retrieve_player():
 
     except Exception as e:
         return f"An Error Occured: {e}"
+
 
 @app.route('/updateRelationship', methods=['POST', 'PUT'])
 def update_relationship():
