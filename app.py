@@ -100,11 +100,10 @@ def retrieve_player():
     """
         retrieve_player() : get all relationships for a user.
     """
-    log.debug("yeppers")
     try:
-        rp_logger = log.withFields({'uuid': request.json['uuid']})
+        rp_logger = log.withFields({'uuid': request.args.get('uuid')})
         rp_logger.debug("retrievePlayer called")
-        player = fs.document(request.json['uuid']).get().to_dict()
+        player = fs.document(request.args.get('uuid')).get().to_dict()
 
         return jsonify({"success": True, "results": player}), 200
 
