@@ -124,10 +124,11 @@ def retrieve_relationship():
             'uuid_trgt':    request.json['uuids'][1],
             })
         rr_logger.debug("retrieveRelationship called")
+        key = "%s.%s" % (request.json['relationship'], request.json['uuids'][1])
         relationship = fs.document(request.json['uuids'][0]).get({key}).to_dict()
 
         return jsonify({"success": True, 
-            "results": relationship[request.json['relationship']][request.json['uuids'][1]]}), 200
+                        "results": relationship[request.json['relationship']][request.json['uuids'][1]]}), 200
 
     except Exception as e:
         return f"An Error Occured: {e}"
