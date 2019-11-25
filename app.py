@@ -55,7 +55,7 @@ log.debug("PyLogrus initialized for structured logging")
 
 @app.route('/users/<string:uuid_src>', methods=['GET'])
 @app.route('/users/<string:uuid_src>/<string:relationship>', methods=['GET'])
-@app.route('/users/<string:uuid_src>/<string:relationship>/<string=uuid_trgt>', methods=['GET'])
+@app.route('/users/<string:uuid_src>/<string:relationship>/<string:uuid_trgt>', methods=['GET'])
 def retrieve_relationships(uuid_src, relationship=None, uuid_trgt=None):
     """
         retrieve_relationships() : get relationships for a user.
