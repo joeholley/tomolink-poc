@@ -37,7 +37,7 @@ def get_logger():
         ('funcName', 'function')
     ]
 
-    formatter = JsonFormatter(datefmt='Z', enabled_fields=enabled_fields, indent=2, sort_keys=True)
+    formatter = JsonFormatter(datefmt='Z', enabled_fields=enabled_fields, sort_keys=True)
 
     #formatter = TextFormatter(datefmt='Z', colorize=False)
 
@@ -95,7 +95,7 @@ def read():
   except Exception as e:
     return f"An Error Occured: {e}"
 
-@app.route('/update', methods=['POST', 'PUT'])
+@app.route('/updateRelationship', methods=['POST', 'PUT'])
 def update_relationship():
     """
         update_relationship() : increment/decrement relationship score between users.
