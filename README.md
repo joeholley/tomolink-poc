@@ -2,14 +2,21 @@
 This is all subject to change before the final version.
 
 ## Files
-*app.py*
+**app.py**
+
 The main API definition and related code.  It's using the Python Flask framework.  The final version is planning to use golang.
-*cloudbuild.yaml*
+
+**cloudbuild.yaml**
+
 A file that defines a Google Cloud Build job. I have an internal PoC repo set up that has a commit hook that automatically kicks off all the jobs in this file.  Basically all it does is packages up the flask app in a container, pushes that container to Google Cloud, and tells Cloud Run (the fully managed Google CLoud Platform serverless product) to run that container.  Deploys take about 1 minute from the time of commit using this file.
-*Dockerfile*
+
+**Dockerfile**
+
 Docker container definition file.
-*requirements.txt*
-List of the python modules being used by the app. Note: I don't really try to keep this clean since this PoC code is going away anyway.  There may be modules listed here that aren't in use in the actualy app anymore.
+
+**requirements.txt**
+
+List of the python modules being used by the app. Note: I don't really try to keep this clean since this PoC code is going away anyway.  There may be modules listed here that aren't in use in the actual app anymore.
 
 ## Quickstart
 These command are using [httpie](https://httpie.org/) to make the HTTP requests, because it is stupid easy, but you can use any tool you like. These commands are all in the bash script `cmd.sh` in the root directory of the repository for reference.
