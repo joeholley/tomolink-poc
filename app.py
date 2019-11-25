@@ -100,7 +100,7 @@ def update_relationship():
     """
         update_relationship() : increment/decrement relationship score between users.
         - Input JSON should include: 
-          - string for direction "uni" (src->trgt) or "bi" for both 
+          - string for direction "discrete" (src->trgt) or "mutual" for both 
           - string for relationship type
           - array of UUID strings. First UUID in the array is always the src, second is always trgt (for POC)
           - int for how much to change the score (delta)
@@ -121,7 +121,7 @@ def update_relationship():
         ur_logger.debug("updateRelationship called")
 
 	# TODO(joeholley): configurable initial score
-        if request.json['direction'] == 'bi':
+        if request.json['direction'] == 'mutual':
             ur_logger.debug("bi-directional relationship update")
             batch = db.batch()
             # This is using a loop as it /could/ be easily made to modify more
@@ -149,7 +149,7 @@ def delete_relationship():
     """
         delete_relationship() : Delete the relationship between two users.
         - Input JSON should include: 
-          - string for direction "uni" (src->trgt) or "bi" for both 
+          - string for direction "discrete" (src->trgt) or "mutual" for both 
           - string for relationship type
           - array of UUID strings. First UUID in the array is always the src, second is always trgt (for POC)
     """
@@ -163,7 +163,7 @@ def delete_relationship():
             })
         dr_logger.debug("deleteRelationship called")
 
-        if request.json['direction'] == 'bi':
+        if request.json['direction'] == 'mutual':
             dr_logger.info("bi-directional relationship delete")
             batch = db.batch()
             for uuid_src in request.json['uuids']:
@@ -174,7 +174,7 @@ def delete_relationship():
                         key = "%s.%s" % (request.json['relationship'], uuid_trgt)
                         batch.update(fs.document(uuid_src), {key: firestore.DELETE_FIELD})
             batch.commit()
-        elif request.json['direction'] == 'uni':
+        elif request.json['direction'] == 'discrete':
             dr_logger.info("uni-directional relationship delete")
             # Nested JSON keys are handled using dot operators in firestore
             key = "%s.%s" % (request.json['relationship'], request.json['uuids'][1])
@@ -190,7 +190,7 @@ def create_relationship():
     """
         create_relationship() : create relationship with initial score between users.
         - Input JSON should include: 
-          - string for direction "uni" (src->trgt) or "bi" for both 
+          - string for direction "discrete" (src->trgt) or "mutual" for both 
           - string for relationship type
           - array of UUID strings. First UUID in the array is always the src, second is always trgt (for POC)
           - int for how much to change the initial score (delta)
@@ -208,7 +208,7 @@ def create_relationship():
 	# TODO(joeholley): configurable initial score
         score = 0 
         newdata = dict()
-        if request.json['direction'] == 'bi':
+        if request.json['direction'] == 'mutual':
             cr_logger.debug("bi-directional relationship create")
             batch = db.batch()
             for uuid_src in request.json['uuids']:
