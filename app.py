@@ -74,10 +74,10 @@ def retrieve_relationships(uuid_src, relationship=None, uuid_trgt=None):
         if uuid_trgt and relationship:
             # Get requested relationship
             key = "%s.%s" % (relationship, uuid_trgt)
-            relationship = fs.document(uuid_src).get({key}).to_dict()
+            score = fs.document(uuid_src).get({key}).to_dict()
             return jsonify({
                 "success": True,
-                "results": relationship[relationship],
+                "results": score[relationship][uuid_trgt],
                 }), 200
         elif relationship:
             # Get all relationships of requested type
