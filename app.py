@@ -114,7 +114,7 @@ def retrieve_relationships(uuid, relationship=None):
             # Get requested relationship
             return jsonify({
                 "success": True,
-                "results": fs.document(uuid).get(relationship).to_dict()
+                "results": fs.document(uuid).get({relationship}).to_dict()
                 }), 200
         else:
         #if True:
