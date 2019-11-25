@@ -108,23 +108,23 @@ def update_relationship():
             'uuid_trgt':    request.json['uuids'][1],
             'delta':        request.json['delta'],
             })
-        ur_logger.debug("createRelationship called")
+        ur_logger.debug("updateRelationship called")
 
 	# TODO(joeholley): configurable initial score
         if request.json['direction'] == 'bi':
-            ur_logger.debug("bi-directional relationship create")
+            ur_logger.debug("bi-directional relationship update")
             batch = db.batch()
             for uuid_src in request.json['uuids']:
                 for uuid_trgt in request.json['uuids']:
                     if uuid_src != uuid_trgt:
                         # Nested JSON keys are handled using dot operators in firestore
                         key = "%s.%s" % (request.json['relationship'], uuid_trgt)
-                        batch.update(fs.document(uuid_src), {key: firestore.Increment(request.json['delta'])})
+                        batch.update(fs.document(uuid_src), {key: firestore.Increment(int(request.json['delta']))})
             batch.commit()
         else:
-            ur_logger.debug("uni-directional relationship create")
+            ur_logger.debug("uni-directional relationship update")
             key = "%s.%s" % (request.json['relationship'], request.json['uuids'][1])
-            fs.document(request.json['uuids'][0]).update({key: firestore.Increment(args['delta'])})
+            fs.document(request.json['uuids'][0]).update({key: firestore.Increment(int(request.json['delta']))})
 
         return jsonify({"success": True}), 200
 
