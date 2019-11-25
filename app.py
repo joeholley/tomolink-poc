@@ -95,10 +95,26 @@ def read():
   except Exception as e:
     return f"An Error Occured: {e}"
 
+@app.route('/retrievePlayer', methods=['GET'])
+def retrieve_player():
+    """
+        retrieve_player() : get all relationships for a user.
+    """
+    try:
+        rp_logger = log.withFields({'uuid': request.json['uuid']})
+        rp_logger.debug("retrievePlayer called")
+        player = fs.document(request.json['uuid']).get().to_dict()
+
+        return jsonify({"success": True, "results": player}), 200
+
+    except Exception as e:
+        return f"An Error Occured: {e}"
+
 @app.route('/updateRelationship', methods=['POST', 'PUT'])
 def update_relationship():
     """
         update_relationship() : increment/decrement relationship score between users.
+        TODO (joeholley): Decrementing below init_score should be floored at init_score (or deleted)
     """
     try:
         ur_logger = log.withFields({
