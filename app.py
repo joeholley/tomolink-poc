@@ -77,7 +77,7 @@ def retrieve_relationships(uuid_src, relationship=None, uuid_trgt=None):
             relationship = fs.document(uuid_src).get({key}).to_dict()
             return jsonify({
                 "success": True,
-                "results": relationship[relationship][uuid_trgt],
+                "results": relationship,
                 }), 200
         elif relationship:
             # Get all relationships of requested type
