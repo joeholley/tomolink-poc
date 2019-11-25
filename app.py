@@ -4,15 +4,13 @@
 # Required imports
 import logging
 import os
-
+import time
 import traceback
 
 from flask import Flask, request, jsonify
 from pylogrus import PyLogrus, JsonFormatter, TextFormatter
 
 from google.cloud import firestore
-
-import actions
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -21,7 +19,7 @@ app = Flask(__name__)
 # cred = credentials.Certificate('key.json')
 # default_app = initialize_app(cred)
 db = firestore.Client()
-root_collection = db.collection('tomos')
+fs = db.collection('tomos')
 
 def get_logger():
     logging.setLoggerClass(PyLogrus)
@@ -64,7 +62,7 @@ def create():
   """
   try:
     uid = request.json['id']
-    root_collection.document(uid).set(request.json)
+    fs.document(uid).set(request.json)
     return jsonify({"success": True}), 200
   except Exception as e:
     return f"An Error Occured: {e}"
@@ -75,7 +73,7 @@ def test():
     uid = request.json['id']
     contents = request.get_json()
     contents.pop('id', None)
-    root_collection.document(uid).set(contents)
+    fs.document(uid).set(contents)
     return jsonify({"success": True}), 200
   except Exception as e:
     return f"An Error Occured: {e}"
@@ -91,10 +89,10 @@ def read():
     # Check if ID was passed to URL query
     tomo_id = request.args.get('id')
     if tomo_id:
-      tomo = root_collection.document(tomo_id).get()
+      tomo = fs.document(tomo_id).get()
       return jsonify(tomo.to_dict()), 200
     else:
-      all_tomos = [doc.to_dict() for doc in root_collection.stream()]
+      all_tomos = [doc.to_dict() for doc in fs.stream()]
       return jsonify(all_tomos), 200
   except Exception as e:
     return f"An Error Occured: {e}"
@@ -108,23 +106,55 @@ def update():
   """
   try:
     uid = request.json['id']
-    root_collection.document(uid).update(request.json)
+    fs.document(uid).update(request.json)
     return jsonify({"success": True}), 200
   except Exception as e:
     return f"An Error Occured: {e}"
 
-@app.route('/delete', methods=['GET', 'DELETE'])
-def delete():
-  """
-    delete() : Delete a document from Firestore collection.
-  """
-  try:
-    # Check for ID in URL query
-    tomo_id = request.args.get('id')
-    root_collection.document(tomo_id).delete()
-    return jsonify({"success": True}), 200
-  except Exception as e:
-    return f"An Error Occured: {e}"
+@app.route('/deleteRelationship', methods=['GET', 'DELETE'])
+def delete_relationship():
+    """
+      delete_relationship() : Delete the relationship between two users.
+    """
+    # TODO(joeholley): final will require input validation
+
+    try:
+        dr_logger = log.withFields({
+            'direction': request.json['direction'],
+            'relationship': request.json['relationship'],
+            'uuid_src': request.json['uuids'][0],
+            'uuid_trgt': request.json['uuids'][1],
+            })
+        dr_logger.debug("deleteRelationship called")
+        if request.json['direction'] == 'bi':
+            dr_logger.info("bi-directional relationship delete")
+            batch = db.batch()
+            for uuid_src in request.json['uuids']:
+                for uuid_trgt in request.json['uuids']:
+                    if uuid_src != uuid_trgt:
+                        # Nested JSON keys are handled using dot operators in firestore
+                        # Delete will not delete the relationship dict, which is fine.
+                        key = "%s.%s" % (request.json['relationship'], uuid_trgt)
+                        batch.update(fs.document(uuid_src), {key: firestore.DELETE_FIELD})
+            batch.commit()
+        elif request.json['direction'] == 'uni':
+            dr_logger.info("uni-directional relationship delete")
+            # Nested JSON keys are handled using dot operators in firestore
+            key = "%s.%s" % (request.json['relationship'], request.json['uuids'][1])
+            fs.document(request.json['uuids'][0]).update({key: firestore.DELETE_FIELD})
+        return jsonify({"success": True}), 200
+
+    except Exception as e:
+        return f"An Error Occured: {e}"
+
+
+  #try:
+  #  # Check for ID in URL query
+  #  tomo_id = request.args.get('id')
+  #  fs.document(tomo_id).delete()
+  #  return jsonify({"success": True}), 200
+  #except Exception as e:
+  #  return f"An Error Occured: {e}"
 
 @app.route('/createRelationship', methods=['POST', 'PUT'])
 def create_relationship():
@@ -158,9 +188,9 @@ def create_relationship():
       for uuid_src in uuids:
         for uuid_trgt in uuids:
           if uuid_src != uuid_trgt:
-            doc_refs.append(root_collection.document(uuid_src).collection(relationship).document(uuid_trgt))
+            doc_refs.append(fs.document(uuid_src).collection(relationship).document(uuid_trgt))
     else:
-      doc_refs.append(root_collection.document(uuids[0]).collection(relationship).document(uuids[1]))
+      doc_refs.append(fs.document(uuids[0]).collection(relationship).document(uuids[1]))
 
     log.debug("point2, len(doc_refs) %s" % len(doc_refs))
     transaction = db.transaction()
@@ -169,7 +199,7 @@ def create_relationship():
     def update_in_transaction(transaction, doc_refs, delta):
       new_scores = []
       log.debug("point4")
-      snapshot = root_collection.document('joja').get(transaction=transaction)
+      snapshot = fs.document('joja').get(transaction=transaction)
       log.debug("point4.1, is this printable %s" % snapshot)
       ha = snapshot.get(u'tomodachi')
 
